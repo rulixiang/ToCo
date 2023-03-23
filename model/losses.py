@@ -27,23 +27,6 @@ def get_masked_ptc_loss(inputs, mask):
     loss = 0.5*(1 - torch.sum(pos_mask * inputs_cos) / (pos_mask.sum()+1)) + 0.5 * torch.sum(neg_mask * inputs_cos) / (neg_mask.sum()+1)
     return loss
 
-def get_masked_ptc_loss_relu(inputs, mask):
-    b, c, h, w = inputs.shape
-    
-    inputs = inputs.reshape(b, c, h*w)
-
-    def cos_sim(x):
-        x = F.normalize(x, p=2, dim=1, eps=1e-8)
-        cos_sim = torch.matmul(x.transpose(1,2), x)
-        return (cos_sim)
-
-    inputs_cos = cos_sim(inputs)
-
-    pos_mask = mask == 1
-    neg_mask = mask == 0
-    loss = 0.5*(1 - torch.sum(pos_mask * inputs_cos) / (pos_mask.sum()+1)) + 0.5 * torch.sum(neg_mask * inputs_cos) / (neg_mask.sum()+1)
-    return loss
-
 def get_seg_loss(pred, label, ignore_index=255):
     
     bg_label = label.clone()
@@ -71,50 +54,6 @@ def get_energy_loss(img, logit, label, img_box, loss_layer, mean=[123.675, 116.2
     loss = loss_layer(_img, pred_prob, crop_mask, label.type(torch.uint8).unsqueeze(1), )
 
     return loss.cuda()
-
-class CTCLoss_bsl(nn.Module):
-    def __init__(self, ncrops=10, teacher_temp=0.04, student_temp=0.1,):
-        super().__init__()
-        self.student_temp = student_temp
-        self.teacher_temp = teacher_temp
-        # self.center_momentum = center_momentum
-        self.ncrops = ncrops
-
-    def forward(self, student_output, teacher_output, flags):
-        """
-        Cross-entropy between softmax outputs of the teacher and student networks.
-        """
-        student_out = student_output / self.student_temp
-        student_out = student_out.chunk(self.ncrops)
-
-        # teacher centering and sharpening
-        temp = self.teacher_temp
-        teacher_out = F.softmax(teacher_output / temp, dim=-1)
-        teacher_out = teacher_out.detach().chunk(2)
-
-        neg_loss, pos_loss = 0, 0
-        neg_cnt, pos_cnt = 0, 0
-
-        for iq, q in enumerate(teacher_out):
-
-            for v in range(len(student_out)):
-                if v == iq:
-                    # we skip cases where student and teacher operate on the same view
-                    continue
-
-                loss = torch.sum(-q * F.log_softmax(student_out[v], dim=-1), dim=-1)
-                
-                pos_inds = flags[:,v] == 1
-                pos_cnt += pos_inds.sum()
-                pos_loss += loss[pos_inds].sum()
-
-                neg_inds = flags[:,v] == 0
-                neg_cnt += neg_inds.sum()
-                neg_loss += loss[neg_inds].sum()
-
-        total_loss = -neg_loss/(neg_cnt+1e-4) + pos_loss/(pos_cnt+1e-4)
-        return total_loss
-
 class CTCLoss_neg(nn.Module):
     def __init__(self, ncrops=10, temp=1.0,):
         super().__init__()
@@ -159,63 +98,6 @@ class CTCLoss_neg(nn.Module):
         total_loss = total_loss / b
 
         return total_loss
-
-"""
-Borrow from https://github.com/facebookresearch/dino
-"""
-class CTCLoss(nn.Module):
-    def __init__(self, out_dim, ncrops=10, teacher_temp=0.04, student_temp=0.1, center_momentum=0.9):
-        super().__init__()
-        self.student_temp = student_temp
-        self.teacher_temp = teacher_temp
-        self.center_momentum = center_momentum
-        self.ncrops = ncrops
-        self.register_buffer("center", torch.zeros(1, out_dim))
-        # we apply a warm up for the teacher temperature because
-        # a too high temperature makes the training instable at the beginning
-        # self.teacher_temp_schedule = np.concatenate((
-        #     np.linspace(warmup_teacher_temp, teacher_temp, warmup_teacher_temp_epochs),
-        #     np.ones(nepochs - warmup_teacher_temp_epochs) * teacher_temp
-        # ))
-
-    def forward(self, student_output, teacher_output):
-        """
-        Cross-entropy between softmax outputs of the teacher and student networks.
-        """
-        student_out = student_output / self.student_temp
-        student_out = student_out.chunk(self.ncrops)
-
-        # teacher centering and sharpening
-        temp = self.teacher_temp
-        teacher_out = F.softmax((teacher_output - self.center) / temp, dim=-1)
-        teacher_out = teacher_out.detach().chunk(2)
-
-        total_loss = 0
-        n_loss_terms = 0
-        for iq, q in enumerate(teacher_out):
-            for v in range(len(student_out)):
-                if v == iq:
-                    # we skip cases where student and teacher operate on the same view
-                    continue
-                loss = torch.sum(-q * F.log_softmax(student_out[v], dim=-1), dim=-1)
-                total_loss += loss.mean()
-                n_loss_terms += 1
-        total_loss /= n_loss_terms
-        self.update_center(teacher_output)
-        return total_loss
-
-    @torch.no_grad()
-    def update_center(self, teacher_output):
-        """
-        Update center used for teacher output.
-        """
-        batch_center = torch.sum(teacher_output, dim=0, keepdim=True)
-        dist.all_reduce(batch_center)
-        batch_center = batch_center / (len(teacher_output) * dist.get_world_size())
-
-        # ema update
-        self.center = self.center * self.center_momentum + batch_center * (1 - self.center_momentum)
-
 
 class DenseEnergyLossFunction(Function):
     

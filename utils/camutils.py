@@ -37,19 +37,6 @@ def cam_to_roi_mask2(cam, cls_label, hig_thre=None, low_thre=None):
 
     return roi_mask
 
-def cam_to_roi_mask3(cam, cls_label, hig_thre=None, low_thre=None):
-    b, c, h, w = cam.shape
-    #pseudo_label = torch.zeros((b,h,w))
-    cls_label_rep = cls_label.unsqueeze(-1).unsqueeze(-1).repeat([1,1,h,w])
-    valid_cam = cls_label_rep * cam
-    cam_value, _ = valid_cam.max(dim=1, keepdim=False)
-    # _pseudo_label += 1
-    roi_mask = torch.ones_like(cam_value, dtype=torch.int16)
-    roi_mask[cam_value<=low_thre] = 0
-    roi_mask[cam_value>=hig_thre] = 2
-
-    return roi_mask
-
 def get_valid_cam(cam, cls_label):
     b, c, h, w = cam.shape
     #pseudo_label = torch.zeros((b,h,w))
@@ -96,62 +83,6 @@ def crop_from_roi_neg(images, roi_mask=None, crop_num=8, crop_size=96):
     crops = [c[:, 0] for c in _crops]
 
     return crops, flags
-
-def crop_from_roi_neg_stable(images, roi_mask=None, crop_num=8, crop_size=96, img_box=None):
-
-    crops = []
-    
-    b, c, h, w = images.shape
-    # pos_num = 2
-    # neg_num = crop_num - pos_num
-
-    temp_crops = torch.zeros(size=(b, crop_num, c, crop_size, crop_size)).to(images.device)
-    flags = torch.ones(size=(b, crop_num+2)).to(images.device)
-    margin = crop_size//2
-
-    for i1 in range(b):
-        roi_index = (roi_mask[i1, margin:(h-margin), margin:(w-margin)] <= 1).nonzero()
-        if roi_index.shape[0] < crop_num:
-            roi_index = (roi_mask[i1, margin:(h-margin), margin:(w-margin)] >= 0).nonzero() ## if NULL then random crop
-        rand_index = torch.randperm(roi_index.shape[0])
-        crop_index = roi_index[rand_index[:crop_num], :]
-        
-        for i2 in range(crop_num):
-            h0, w0 = crop_index[i2, 0], crop_index[i2, 1] # centered at (h0, w0)
-            temp_crops[i1, i2, ...] = images[i1, :, h0:(h0+crop_size), w0:(w0+crop_size)]
-            temp_mask = roi_mask[i1, h0:(h0+crop_size), w0:(w0+crop_size)]
-            if temp_mask.sum() / (crop_size*crop_size) <= 0.1:
-                ## if ratio of uncertain regions < 0.1 then negative
-                flags[i1, i2+2] = 0
-    
-    _crops = torch.chunk(temp_crops, chunks=crop_num, dim=1,)
-    crops = [c[:, 0] for c in _crops]
-    return crops, flags
-
-
-def crop_from_roi(images, roi_mask=None, crop_num=8, crop_size=96):
-
-    crops = []
-    b, c, h, w = images.shape
-
-    temp_crops = torch.zeros(size=(b, crop_num, c, crop_size, crop_size)).to(images.device)
-    margin = crop_size//2
-
-    for i1 in range(b):
-        roi_index = (roi_mask[i1, margin:(h-margin), margin:(w-margin)] == 1).nonzero()
-        if roi_index.shape[0]<crop_num:
-            roi_index = (roi_mask[i1, margin:(h-margin), margin:(w-margin)] >= 0).nonzero() ## if NULL then random crop
-        rand_index = torch.randperm(roi_index.shape[0])
-        crop_index = roi_index[rand_index[:crop_num], :]
-
-        for i2 in range(crop_num):
-            h0, w0 = crop_index[i2, 0], crop_index[i2, 1] # centered at (h0, w0)
-            temp_crops[i1, i2, ...] = images[i1, :, h0:(h0+crop_size), w0:(w0+crop_size)]
-    
-    _crops = torch.chunk(temp_crops, chunks=crop_num, dim=1,)
-    crops = [c[:, 0] for c in _crops]
-
-    return crops
 
 def multi_scale_cam2(model, inputs, scales):
     '''process cam and aux-cam'''
