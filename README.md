@@ -15,8 +15,10 @@ Code of CVPR 2023 paper: Token Contrast for Weakly-Supervised Semantic Segmentat
 We proposed Token Contrast to address the over-smoothing issue and further leverage the virtue of ViT for the Weakly-Supervised Semantic Segmentation task.
 
 ## Data Preparations
-
-### VOC dataset
+<details>
+<summary>
+VOC dataset
+</summary>
 
 #### 1. Download
 
@@ -38,8 +40,13 @@ VOCdevkit/
     ├── SegmentationClassAug
     └── SegmentationObject
 ```
+</details>
 
-### COCO dataset
+<details>
+
+<summary>
+COCO dataset
+</summary>
 
 #### 1. Download
 ``` bash
@@ -60,6 +67,8 @@ MSCOCO/
 
 #### 2. Generating VOC style segmentation labels for COCO
 To generate VOC style segmentation labels for COCO dataset, you could use the scripts provided at this [repo](https://github.com/alicranck/coco2voc). Or, just download the generated masks from [Google Drive](https://drive.google.com/file/d/1pRE9SEYkZKVg0Rgz2pi9tg48j7GlinPV/view).
+
+</details>
 
 ## Create environment
 I used docker to build the enviroment.
