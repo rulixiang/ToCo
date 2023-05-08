@@ -56,7 +56,7 @@ wget http://images.cocodataset.org/zips/val2014.zip
 #### 2. Generating VOC style segmentation labels for COCO
 To generate VOC style segmentation labels for COCO dataset, you could use the scripts provided at this [repo](https://github.com/alicranck/coco2voc). Or, just download the generated masks from [Google Drive](https://drive.google.com/file/d/147kbmwiXUnd2dW9_j8L5L0qwFYHUcP9I/view?usp=share_link).
 
-I recommend to organize the images and labels in `coco2014` and `SegmentationClass`, 
+I recommend to organize the images and labels in `coco2014` and `SegmentationClass`, respectively.
 
 ``` bash
 MSCOCO/
