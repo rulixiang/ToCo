@@ -53,20 +53,22 @@ COCO dataset
 wget http://images.cocodataset.org/zips/train2014.zip
 wget http://images.cocodataset.org/zips/val2014.zip
 ```
-After unzipping the downloaded files, for convenience, I recommand to organizing them in VOC style.
+#### 2. Generating VOC style segmentation labels for COCO
+To generate VOC style segmentation labels for COCO dataset, you could use the scripts provided at this [repo](https://github.com/alicranck/coco2voc). Or, just download the generated masks from [Google Drive](https://drive.google.com/file/d/147kbmwiXUnd2dW9_j8L5L0qwFYHUcP9I/view?usp=share_link).
+
+I recommend to organize the images and labels in `coco2014` and `SegmentationClass`, 
 
 ``` bash
 MSCOCO/
-├── JPEGImages
-│    ├── train
-│    └── val
+├── coco2014
+│    ├── train2014
+│    └── val2014
 └── SegmentationClass
-     ├── train
-     └── val
+     ├── train2014
+     └── val2014
 ```
 
-#### 2. Generating VOC style segmentation labels for COCO
-To generate VOC style segmentation labels for COCO dataset, you could use the scripts provided at this [repo](https://github.com/alicranck/coco2voc). Or, just download the generated masks from [Google Drive](https://drive.google.com/file/d/1pRE9SEYkZKVg0Rgz2pi9tg48j7GlinPV/view).
+
 
 </details>
 
