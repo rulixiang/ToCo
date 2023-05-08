@@ -29,7 +29,7 @@ parser.add_argument("--backbone", default='deit_base_patch16_224', type=str, hel
 parser.add_argument("--pooling", default='gmp', type=str, help="pooling choice for patch tokens")
 parser.add_argument("--pretrained", default=True, type=bool, help="use imagenet pretrained weights")
 
-parser.add_argument("--img_folder", default='../coco2014', type=str, help="dataset folder")
+parser.add_argument("--img_folder", default='../MSCOCO/coco2014', type=str, help="dataset folder")
 parser.add_argument("--label_folder", default='../MSCOCO/SegmentationClass', type=str, help="dataset folder")
 parser.add_argument("--list_folder", default='datasets/coco', type=str, help="train/val/test list file")
 parser.add_argument("--num_classes", default=81, type=int, help="number of classes")
